@@ -1,0 +1,30 @@
+name: 每周一自动同步上游 myiptv-api
+on:
+  schedule:
+    # UTC 0点 = 北京时间周一早上8点，每周一执行
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # 支持手动一键触发同步
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: master # 本仓库分支是master，不可写main
+
+      - name: 配置Git提交信息
+        run: |
+          git config user.name "IPTV-AutoSync"
+          git config user.email "sync@github.com"
+
+      - name: 拉取上游并合并更新
+        run: |
+          git remote add upstream https://github.com/Guovin/iptv-api.git
+          git fetch upstream
+          git checkout master
+          # 无冲突快速合并，冲突则终止自动同步
+          git merge --ff-only upstream/master || echo "存在文件冲突，请手动点击Sync fork处理"
+          git push origin master
